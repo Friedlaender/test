@@ -203,15 +203,16 @@
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-database-compat.js"></script>
 
     <script>
-        // 1. FÜGE DEIN PERSÖNLICHES FIREBASE-KONFIGURATIONS-SNIPPET HIER EIN!
-        // Kopiere es aus der Firebase Console (Schritt 1.3 in unserer Anleitung).
+        // Dein persönliches Firebase-Konfigurations-Snippet
         const firebaseConfig = {
-             apiKey: "AIzaSyC95Lc5V1oVnCfa05oWSVYLD2CLUjQDFfM",
-  authDomain: "einkaufsliste-11bf5.firebaseapp.com",
-  projectId: "einkaufsliste-11bf5",
-  storageBucket: "einkaufsliste-11bf5.firebasestorage.app",
-  messagingSenderId: "204728872569",
-  appId: "1:204728872569:web:db4bcf2b68f50405d0aea8"
+            apiKey: "AIzaSyC95Lc5V1oVnCfa05oWSVYLD2CLUjQDFfM",
+            authDomain: "einkaufsliste-11bf5.firebaseapp.com",
+            projectId: "einkaufsliste-11bf5",
+            storageBucket: "einkaufsliste-11bf5.firebasestorage.app",
+            messagingSenderId: "204728872569",
+            appId: "1:204728872569:web:db4bcf2b68f50405d0aea8",
+            // HIER IST DIE KORREKTUR: Die Datenbank-URL wurde hinzugefügt
+            databaseURL: "https://einkaufsliste-11bf5-default-rtdb.europe-west1.firebasedatabase.app" //
         };
 
         // Initialisiere Firebase
@@ -219,48 +220,39 @@
 
         // Hole eine Referenz zur Realtime Database
         const database = firebase.database();
-        // Hole eine Referenz zum Pfad deiner Einkaufsliste.
-        // Du kannst hier einen beliebigen Namen wählen, z.B. 'einkaufsliste-items'.
         const itemsRef = database.ref('einkaufsliste-items');
 
 
-        // Bestehender JavaScript-Code aus deiner Datei, angepasst für Firebase
         const itemInput = document.getElementById('itemInput');
         const shoppingList = document.getElementById('shoppingList');
-        let currentFilter = 'all'; // Initialer Filterzustand
+        let currentFilter = 'all';
 
-        // Lade die Liste beim Start (jetzt von Firebase!)
         document.addEventListener('DOMContentLoaded', initApp);
 
         function initApp() {
-            // Wir laden die Liste nicht mehr von localStorage, sondern lauschen auf Firebase-Änderungen
             listenForFirebaseChanges();
-            filterItems(currentFilter); // Initialen Filter anwenden
+            filterItems(currentFilter);
         }
 
-        // 'addItem' Funktion anpassen, um Daten an Firebase zu senden
         function addItem() {
             const itemText = itemInput.value.trim();
             if (itemText === '') return;
 
-            // Anstatt createListItem direkt aufzurufen, senden wir es an Firebase
             itemsRef.push({
                 text: itemText,
                 completed: false,
-                timestamp: firebase.database.ServerValue.TIMESTAMP // Fügt einen Server-Zeitstempel hinzu
+                timestamp: firebase.database.ServerValue.TIMESTAMP
             }).then(() => {
-                itemInput.value = ''; // Eingabefeld nach erfolgreichem Speichern leeren
+                itemInput.value = '';
             }).catch((error) => {
                 console.error("Fehler beim Hinzufügen des Artikels: ", error);
                 alert("Fehler beim Hinzufügen des Artikels.");
             });
         }
 
-        // Die Funktion createListItem bleibt ähnlich, sie wird jetzt von Firebase-Daten aufgerufen
-        // Sie erwartet nun ein 'key' (die Firebase ID) und 'itemData'
         function createListItem(itemKey, itemData) {
             const li = document.createElement('li');
-            li.setAttribute('data-id', itemKey); // Die Firebase-ID als data-id speichern
+            li.setAttribute('data-id', itemKey);
             if (itemData.completed) {
                 li.classList.add('completed');
             }
@@ -270,18 +262,14 @@
             checkbox.classList.add('item-checkbox');
             checkbox.checked = itemData.completed;
             checkbox.addEventListener('change', () => {
-                // Update in Firebase, nicht nur lokal
                 itemsRef.child(itemKey).update({ completed: checkbox.checked });
-                // Die listenForFirebaseChanges-Funktion wird die Anzeige aktualisieren
             });
 
             const textSpan = document.createElement('span');
             textSpan.classList.add('item-text');
             textSpan.textContent = itemData.text;
             textSpan.addEventListener('click', () => {
-                // Update in Firebase, nicht nur lokal
                 itemsRef.child(itemKey).update({ completed: !itemData.completed });
-                // Die listenForFirebaseChanges-Funktion wird die Anzeige aktualisieren
             });
 
             const actionsDiv = document.createElement('div');
@@ -293,7 +281,6 @@
             editBtn.addEventListener('click', () => {
                 const newText = prompt('Artikel bearbeiten:', itemData.text);
                 if (newText !== null && newText.trim() !== '' && newText.trim() !== itemData.text) {
-                    // Update in Firebase, nicht nur lokal
                     itemsRef.child(itemKey).update({ text: newText.trim() });
                 }
             });
@@ -303,9 +290,7 @@
             deleteBtn.classList.add('delete-btn');
             deleteBtn.addEventListener('click', () => {
                 if (confirm('Sicher, dass du diesen Artikel löschen möchtest?')) {
-                    // Löschen in Firebase
                     itemsRef.child(itemKey).remove();
-                    // Die listenForFirebaseChanges-Funktion wird die Anzeige aktualisieren
                 }
             });
 
@@ -318,13 +303,8 @@
             shoppingList.appendChild(li);
         }
 
-        // Die Funktionen saveList() und loadList() werden nicht mehr benötigt,
-        // da Firebase die Daten speichert und in Echtzeit lädt.
-        // Sie werden durch listenForFirebaseChanges ersetzt.
-
         function listenForFirebaseChanges() {
             itemsRef.on('value', (snapshot) => {
-                // Leere die aktuelle Liste im HTML, bevor wir sie neu aufbauen
                 shoppingList.innerHTML = '';
                 const itemsArray = [];
                 snapshot.forEach((childSnapshot) => {
@@ -333,25 +313,20 @@
                     itemsArray.push({ key: itemKey, data: itemData });
                 });
 
-                // Optional: Sortieren nach Zeitstempel, um die Reihenfolge beizubehalten
                 itemsArray.sort((a, b) => a.data.timestamp - b.data.timestamp);
 
                 itemsArray.forEach(item => {
                     createListItem(item.key, item.data);
                 });
 
-                filterItems(currentFilter); // Filter nach dem Laden/Aktualisieren anwenden
+                filterItems(currentFilter);
             });
         }
 
-
-        // Die filterItems-Funktion bleibt größtenteils gleich,
-        // da sie nur die Anzeige im DOM betrifft, nicht die Datenspeicherung.
         function filterItems(filterType) {
             currentFilter = filterType;
             const allItems = shoppingList.querySelectorAll('li');
 
-            // Setze den aktiven Button
             document.querySelectorAll('.filter-buttons button').forEach(button => {
                 button.classList.remove('active');
             });
@@ -374,17 +349,11 @@
             });
         }
 
-        // Ereignishörer für Enter-Taste im Eingabefeld bleibt
         itemInput.addEventListener('keypress', function(event) {
             if (event.key === 'Enter') {
                 addItem();
             }
         });
-
-        // generateId() wird nicht mehr benötigt, da Firebase IDs automatisch generiert
-        // function generateId() {
-        //     return '_' + Math.random().toString(36).substr(2, 9);
-        // }
 
     </script>
 </body>
