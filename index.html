@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meine Smarte Einkaufsliste</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #e9ecef;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+        .container {
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+            border: 1px solid #dee2e6;
+        }
+        h1 {
+            text-align: center;
+            color: #343a40;
+            margin-bottom: 30px;
+            font-size: 2.2em;
+            font-weight: 600;
+        }
+        .input-group {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .input-group input[type="text"] {
+            flex-grow: 1;
+            padding: 12px 15px;
+            border: 1px solid #ced4da;
+            border-radius: 8px 0 0 8px;
+            font-size: 1em;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .input-group input[type="text"]:focus {
+            border-color: #007bff;
+        }
+        .input-group button {
+            padding: 12px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 0 8px 8px 0;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.2s ease;
+        }
+        .input-group button:hover {
+            background-color: #0056b3;
+        }
+
+        .filter-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .filter-buttons button {
+            padding: 8px 15px;
+            border: 1px solid #007bff;
+            border-radius: 6px;
+            background-color: white;
+            color: #007bff;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .filter-buttons button.active,
+        .filter-buttons button:hover {
+            background-color: #007bff;
+            color: white;
+        }
+
+        #shoppingList {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        #shoppingList li {
+            display: flex;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #f1f3f5;
+            transition: background-color 0.2s ease;
+        }
+        #shoppingList li:last-child {
+            border-bottom: none;
+        }
+        #shoppingList li.completed {
+            text-decoration: line-through;
+            color: #868e96;
+            opacity: 0.7;
+        }
+        #shoppingList li.completed .item-text {
+            color: #868e96;
+        }
+
+        .item-checkbox {
+            margin-right: 15px;
+            transform: scale(1.3);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .item-text {
+            flex-grow: 1;
+            font-size: 1.1em;
+            color: #495057;
+            cursor: pointer; /* Makes the text clickable for toggling */
+        }
+        .item-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .item-actions button {
+            background: none;
+            border: none;
+            font-size: 0.9em;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .item-actions .edit-btn {
+            color: #ffc107;
+        }
+        .item-actions .edit-btn:hover {
+            background-color: #fff3cd;
+        }
+        .item-actions .delete-btn {
+            color: #dc3545;
+        }
+        .item-actions .delete-btn:hover {
+            background-color: #f8d7da;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 20px;
+                border-radius: 8px;
+            }
+            h1 {
+                font-size: 1.8em;
+                margin-bottom: 20px;
+            }
+            .input-group input[type="text"],
+            .input-group button {
+                font-size: 0.9em;
+                padding: 10px 12px;
+            }
+            .filter-buttons {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .filter-buttons button {
+                padding: 6px 12px;
+                font-size: 0.9em;
+            }
+            #shoppingList li {
+                padding: 12px 0;
+            }
+            .item-text {
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Smarte Einkaufsliste</h1>
+        <div class="input-group">
+            <input type="text" id="itemInput" placeholder="Neuer Artikel hinzufügen (z.B. Milch 1L)">
+            <button onclick="addItem()">Hinzufügen</button>
+        </div>
+
+        <div class="filter-buttons">
+            <button id="filterAll" class="active" onclick="filterItems('all')">Alle</button>
+            <button id="filterActive" onclick="filterItems('active')">Offen</button>
+            <button id="filterCompleted" onclick="filterItems('completed')">Erledigt</button>
+        </div>
+
+        <ul id="shoppingList">
+            </ul>
+    </div>
+
+    <script>
+        const itemInput = document.getElementById('itemInput');
+        const shoppingList = document.getElementById('shoppingList');
+        let currentFilter = 'all'; // Initialer Filterzustand
+
+        // Lade die Liste beim Start
+        document.addEventListener('DOMContentLoaded', loadList);
+
+        function addItem() {
+            const itemText = itemInput.value.trim();
+            if (itemText === '') return; // Nichts hinzufügen, wenn leer
+
+            createListItem({ text: itemText, completed: false });
+            saveList();
+            itemInput.value = ''; // Eingabefeld leeren
+            filterItems(currentFilter); // Liste nach Filter aktualisieren
+        }
+
+        function createListItem(itemData) {
+            const li = document.createElement('li');
+            li.setAttribute('data-id', generateId()); // Eindeutige ID für jedes Element
+            if (itemData.completed) {
+                li.classList.add('completed');
+            }
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.classList.add('item-checkbox');
+            checkbox.checked = itemData.completed;
+            checkbox.addEventListener('change', () => {
+                li.classList.toggle('completed', checkbox.checked);
+                saveList();
+                filterItems(currentFilter); // Liste nach Filter aktualisieren
+            });
+
+            const textSpan = document.createElement('span');
+            textSpan.classList.add('item-text');
+            textSpan.textContent = itemData.text;
+            textSpan.addEventListener('click', () => { // Text klickbar machen zum Toggle
+                checkbox.checked = !checkbox.checked;
+                checkbox.dispatchEvent(new Event('change')); // Manuell Change-Event auslösen
+            });
+
+            const actionsDiv = document.createElement('div');
+            actionsDiv.classList.add('item-actions');
+
+            const editBtn = document.createElement('button');
+            editBtn.textContent = 'Bearbeiten';
+            editBtn.classList.add('edit-btn');
+            editBtn.addEventListener('click', () => {
+                const newText = prompt('Artikel bearbeiten:', textSpan.textContent);
+                if (newText !== null && newText.trim() !== '') {
+                    textSpan.textContent = newText.trim();
+                    saveList();
+                }
+            });
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Löschen';
+            deleteBtn.classList.add('delete-btn');
+            deleteBtn.addEventListener('click', () => {
+                if (confirm('Sicher, dass du diesen Artikel löschen möchtest?')) {
+                    li.remove(); // Element aus dem DOM entfernen
+                    saveList(); // Liste speichern (ohne das gelöschte Element)
+                    filterItems(currentFilter); // Liste nach Filter aktualisieren
+                }
+            });
+
+            li.appendChild(checkbox);
+            li.appendChild(textSpan);
+            actionsDiv.appendChild(editBtn);
+            actionsDiv.appendChild(deleteBtn);
+            li.appendChild(actionsDiv);
+
+            shoppingList.appendChild(li);
+        }
+
+        function saveList() {
+            const items = [];
+            shoppingList.querySelectorAll('li').forEach(li => {
+                const text = li.querySelector('.item-text').textContent;
+                const completed = li.classList.contains('completed');
+                items.push({ text, completed });
+            });
+            localStorage.setItem('smarteEinkaufsliste', JSON.stringify(items));
+        }
+
+        function loadList() {
+            const items = JSON.parse(localStorage.getItem('smarteEinkaufsliste') || '[]');
+            shoppingList.innerHTML = ''; // Liste zuerst leeren
+            items.forEach(item => {
+                createListItem(item);
+            });
+            filterItems(currentFilter); // Filter beim Laden anwenden
+        }
+
+        function filterItems(filterType) {
+            currentFilter = filterType;
+            const allItems = shoppingList.querySelectorAll('li');
+
+            // Setze den aktiven Button
+            document.querySelectorAll('.filter-buttons button').forEach(button => {
+                button.classList.remove('active');
+            });
+            document.getElementById('filter' + filterType.charAt(0).toUpperCase() + filterType.slice(1)).classList.add('active');
+
+
+            allItems.forEach(item => {
+                const isCompleted = item.classList.contains('completed');
+                switch (filterType) {
+                    case 'all':
+                        item.style.display = 'flex';
+                        break;
+                    case 'active':
+                        item.style.display = isCompleted ? 'none' : 'flex';
+                        break;
+                    case 'completed':
+                        item.style.display = isCompleted ? 'flex' : 'none';
+                        break;
+                }
+            });
+        }
+
+        // Ereignishörer für Enter-Taste im Eingabefeld
+        itemInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                addItem();
+            }
+        });
+
+        function generateId() {
+            return '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+    </script>
+</body>
+</html>
